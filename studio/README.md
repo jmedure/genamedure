@@ -28,10 +28,12 @@ Open [http://localhost:3333](http://localhost:3333).
 
 Edit **Media Kit** → publish.
 
-## Deploy (optional)
+## Deploy
+
+Hosted at [https://genamedure.sanity.studio](https://genamedure.sanity.studio).
+
+After schema changes:
 
 ```bash
 npm run deploy
 ```
-
-Hosts Studio at a `*.sanity.studio` URL so Gena can edit without running it locally.

@@ -53,8 +53,7 @@ Credentials live in local `.env.local` / Vercel only — never commit them.
 
 ### Can automate
 
-- TikTok **username** → Sanity `tiktokHandle`
-- **Profile link** → Sanity `tiktokUrl`
+- TikTok **username** / profile link are hardcoded in the site (not written to Sanity)
 - **Follower count** (lifetime total) → `followers`
 - Engagement on videos **posted** in a chosen window → `metrics` (post views, likes, comments, shares)
 
@@ -106,5 +105,5 @@ CRON_SECRET=
 ## Manual workflow (current)
 
 1. Gena (or Jacob) pulls numbers from TikTok Studio / app.
-2. Studio → Media Kit → Stats: update `followers`, `periodLabel`, `metrics`, `statsLastUpdated`.
+2. Studio → Media Kit → Stats: update `followers`, `periodLabel`, `postViews`, `profileViews`, `likes`, `comments`, `shares`. (“Last updated” is automatic from publish time.)
 3. Publish. Site revalidates ~30s (`getMediaKit`).

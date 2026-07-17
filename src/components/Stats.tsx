@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { MaskedCountUp } from "@/components/MaskedCountUp";
 import type { StatMetric } from "@/lib/getMediaKit";
 
 type StatsProps = {
@@ -41,9 +42,10 @@ export function Stats({
           <p className="font-body text-2xl capitalize tracking-[-0.12px] text-ink md:normal-case md:tracking-[-0.24px]">
             followers
           </p>
-          <p className="font-display text-[120px] leading-none text-black">
-            {followers}
-          </p>
+          <MaskedCountUp
+            value={followers}
+            className="font-display text-[120px] text-black"
+          />
         </div>
 
         <div className="flex flex-col gap-12">
@@ -60,9 +62,10 @@ export function Stats({
                 <p className="font-body text-2xl capitalize tracking-[-0.12px] text-ink md:normal-case">
                   {m.label}
                 </p>
-                <p className="font-display text-[60px] leading-none text-black md:text-[80px]">
-                  {m.value}
-                </p>
+                <MaskedCountUp
+                  value={m.value}
+                  className="font-display text-[60px] text-black md:text-[80px]"
+                />
               </div>
             ))}
           </div>

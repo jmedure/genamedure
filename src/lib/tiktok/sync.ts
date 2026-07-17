@@ -1,22 +1,8 @@
 import { revalidatePath } from "next/cache";
 import { getValidAccessToken } from "./auth";
 import { fetchLast60DaysVideoTotals, fetchTikTokUser } from "./api";
-import {
-  formatCompact,
-  formatHandle,
-  formatStatsUpdatedAt,
-} from "./format";
+import { formatCompact, formatHandle } from "./format";
 import { getWriteClient } from "@/sanity/writeClient";
-
-type ExistingMetric = {
-  _key?: string;
-  label?: string | null;
-  value?: string | null;
-};
-
-function metricKey(label: string) {
-  return label.toLowerCase().replace(/\s+/g, "-");
-}
 
 export async function syncTikTokStatsToSanity() {
   const accessToken = await getValidAccessToken();
@@ -31,8 +17,8 @@ export async function syncTikTokStatsToSanity() {
   const client = getWriteClient();
   const existing = await client.fetch<{
     _id?: string;
-    metrics?: ExistingMetric[] | null;
-  } | null>(`*[_id == "mediaKit"][0]{ _id, metrics[]{ _key, label, value } }`);
+    profileViews?: string | null;
+  } | null>(`*[_id == "mediaKit"][0]{ _id, profileViews }`);
 
   if (!existing?._id) {
     throw new Error(
@@ -40,50 +26,18 @@ export async function syncTikTokStatsToSanity() {
     );
   }
 
-  const existingProfileViews =
-    existing?.metrics?.find(
-      (m) => m.label?.toLowerCase().trim() === "profile views",
-    )?.value ?? null;
+  const profileViews = existing.profileViews?.trim() || "—";
+  const stats = {
+    followers: formatCompact(user.follower_count ?? 0),
+    periodLabel: "Last 60 days",
+    postViews: formatCompact(totals.postViews),
+    profileViews,
+    likes: formatCompact(totals.likes),
+    comments: formatCompact(totals.comments),
+    shares: formatCompact(totals.shares),
+  };
 
-  const metrics = [
-    {
-      _key: metricKey("post views"),
-      label: "post views",
-      value: formatCompact(totals.postViews),
-    },
-    {
-      _key: metricKey("profile views"),
-      label: "profile views",
-      value: existingProfileViews || "—",
-    },
-    {
-      _key: metricKey("likes"),
-      label: "likes",
-      value: formatCompact(totals.likes),
-    },
-    {
-      _key: metricKey("comments"),
-      label: "comments",
-      value: formatCompact(totals.comments),
-    },
-    {
-      _key: metricKey("shares"),
-      label: "shares",
-      value: formatCompact(totals.shares),
-    },
-  ];
-
-  await client
-    .patch("mediaKit")
-    .set({
-      tiktokHandle: handle,
-      tiktokUrl: profileUrl,
-      followers: formatCompact(user.follower_count ?? 0),
-      periodLabel: "Last 60 days",
-      statsLastUpdated: formatStatsUpdatedAt(),
-      metrics,
-    })
-    .commit();
+  await client.patch("mediaKit").set(stats).commit();
 
   try {
     await client
@@ -99,10 +53,16 @@ export async function syncTikTokStatsToSanity() {
   return {
     handle,
     profileUrl,
-    followers: formatCompact(user.follower_count ?? 0),
-    metrics,
+    followers: stats.followers,
+    metrics: [
+      { label: "post views", value: stats.postViews },
+      { label: "profile views", value: stats.profileViews },
+      { label: "likes", value: stats.likes },
+      { label: "comments", value: stats.comments },
+      { label: "shares", value: stats.shares },
+    ],
     videosCounted: totals.videoCount,
-    profileViews: existingProfileViews
+    profileViews: existing.profileViews?.trim()
       ? "preserved (not available via TikTok Display API)"
       : "missing — set manually in Sanity",
   };

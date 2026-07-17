@@ -34,11 +34,14 @@ If Sanity has no published **Media Kit** document yet, the site falls back to `s
 ### Stats (manual for now)
 
 Update followers / metrics in Studio → **Media Kit** → Stats.  
+“Last updated” is automatic from the document’s publish time — no manual field.  
 TikTok automation was scoped then **paused** — see [`docs/tiktok-stats-sync.md`](docs/tiktok-stats-sync.md) if we pick it up later.
 
 ## Develop — Studio (edit content)
 
 Studio is a **separate app** under `studio/` (not embedded in Next). Needs Node.js ≥ 22.12.
+
+**Production Studio (for Gena):** [https://genamedure.sanity.studio](https://genamedure.sanity.studio)
 
 ```bash
 npm run dev:studio
@@ -48,20 +51,19 @@ cd studio && npm install && npm run dev
 
 First time only: `cd studio && npx sanity login`
 
-Open [http://localhost:3333](http://localhost:3333).
+Open [http://localhost:3333](http://localhost:3333) locally, or the hosted URL above.
 
 Edit the **Media Kit** singleton → publish. The site revalidates about every 30s.
 
 ### What Gena can edit in Studio
 
-- Name, email, TikTok handle/URL
 - Hero images
-- Brand logos (ticker) + brand names list
-- About copy (mobile + desktop)
-- Stats (followers, period, metrics)
+- Pronunciation + about (about also drives site meta description)
+- Stats: followers, period, post views, profile views, likes, comments, shares
 - Gallery clips (poster + optional video file)
+- Brand names list
 
-Hand-drawn scribbles stay in the frontend for now.
+Name, email, TikTok handle/URL, and brand logos are hardcoded in `src/lib/content.ts`. Hand-drawn scribbles stay in the frontend for now.
 
 ## Content fallbacks
 
@@ -73,4 +75,4 @@ Hand-drawn scribbles stay in the frontend for now.
 ## Deploy
 
 - **Site:** Vercel (point at this repo root — Next.js)
-- **Studio (optional):** `cd studio && npm run deploy` → `*.sanity.studio`
+- **Studio:** [https://genamedure.sanity.studio](https://genamedure.sanity.studio) — redeploy after schema changes with `cd studio && npm run deploy`

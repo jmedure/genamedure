@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { About } from "@/components/About";
 import { BrandTicker } from "@/components/BrandTicker";
 import { BrandsList } from "@/components/BrandsList";
@@ -6,7 +7,16 @@ import { Header } from "@/components/Header";
 import { HeroGallery } from "@/components/HeroGallery";
 import { Stats } from "@/components/Stats";
 import { VideoGallery } from "@/components/VideoGallery";
+import { SITE } from "@/lib/content";
 import { getMediaKit } from "@/lib/getMediaKit";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const content = await getMediaKit();
+  return {
+    title: `${SITE.name} — Media Kit`,
+    description: content.site.about,
+  };
+}
 
 export default async function Home() {
   const content = await getMediaKit();
@@ -27,7 +37,6 @@ export default async function Home() {
           <About
             pronunciation={content.site.pronunciation}
             about={content.site.about}
-            aboutDesktop={content.site.aboutDesktop}
           />
           <Stats
             lastUpdated={content.stats.lastUpdated}

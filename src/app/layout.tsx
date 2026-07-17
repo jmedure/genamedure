@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Vina_Sans } from "next/font/google";
+import { SITE } from "@/lib/content";
 import "./globals.css";
 
 const vinaSans = Vina_Sans({
@@ -10,9 +11,8 @@ const vinaSans = Vina_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Gena Medure — Media Kit",
-  description:
-    "Lifestyle and home creator based in Ventura, CA. Brand kit and media for collaborations.",
+  title: `${SITE.name} — Media Kit`,
+  description: SITE.about,
 };
 
 export default function RootLayout({

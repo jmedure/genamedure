@@ -7,7 +7,6 @@ export const mediaKit = defineType({
   type: 'document',
   icon: DocumentIcon,
   groups: [
-    {name: 'chrome', title: 'Site'},
     {name: 'hero', title: 'Hero'},
     {name: 'about', title: 'About'},
     {name: 'stats', title: 'Stats'},
@@ -15,37 +14,6 @@ export const mediaKit = defineType({
     {name: 'brands', title: 'Brands'},
   ],
   fields: [
-    defineField({
-      name: 'name',
-      title: 'Name',
-      type: 'string',
-      group: 'chrome',
-      validation: (rule) => rule.required(),
-    }),
-    defineField({
-      name: 'email',
-      title: 'Email',
-      type: 'string',
-      group: 'chrome',
-      validation: (rule) => rule.required().email(),
-    }),
-    defineField({
-      name: 'tiktokHandle',
-      title: 'TikTok handle',
-      type: 'string',
-      description: 'Include the @ (e.g. @genamedure)',
-      group: 'chrome',
-      validation: (rule) => rule.required(),
-    }),
-    defineField({
-      name: 'tiktokUrl',
-      title: 'TikTok URL',
-      type: 'url',
-      group: 'chrome',
-      validation: (rule) =>
-        rule.required().uri({scheme: ['http', 'https']}),
-    }),
-
     defineField({
       name: 'heroImages',
       title: 'Hero images',
@@ -70,50 +38,6 @@ export const mediaKit = defineType({
     }),
 
     defineField({
-      name: 'brandLogos',
-      title: 'Brand logos (ticker)',
-      type: 'array',
-      group: 'brands',
-      of: [
-        defineArrayMember({
-          type: 'object',
-          name: 'brandLogo',
-          title: 'Brand logo',
-          fields: [
-            defineField({
-              name: 'name',
-              title: 'Brand name',
-              type: 'string',
-              validation: (rule) => rule.required(),
-            }),
-            defineField({
-              name: 'logo',
-              title: 'Logo',
-              type: 'image',
-              options: {hotspot: true},
-              validation: (rule) => rule.required(),
-            }),
-            defineField({
-              name: 'width',
-              title: 'Width (optional)',
-              type: 'number',
-              description: 'Used for aspect ratio in the ticker',
-            }),
-            defineField({
-              name: 'height',
-              title: 'Height (optional)',
-              type: 'number',
-              description: 'Used for aspect ratio in the ticker',
-            }),
-          ],
-          preview: {
-            select: {title: 'name', media: 'logo'},
-          },
-        }),
-      ],
-    }),
-
-    defineField({
       name: 'pronunciation',
       title: 'Pronunciation',
       type: 'string',
@@ -121,27 +45,13 @@ export const mediaKit = defineType({
     }),
     defineField({
       name: 'about',
-      title: 'About (mobile)',
+      title: 'About',
       type: 'text',
       rows: 4,
       group: 'about',
-    }),
-    defineField({
-      name: 'aboutDesktop',
-      title: 'About (desktop)',
-      type: 'text',
-      rows: 4,
-      group: 'about',
-      description: 'Leave blank to reuse the mobile about text',
+      description: 'Also used as the site meta description',
     }),
 
-    defineField({
-      name: 'statsLastUpdated',
-      title: 'Stats last updated',
-      type: 'string',
-      group: 'stats',
-      description: 'Shown as-is (e.g. 8:45 AM PDT)',
-    }),
     defineField({
       name: 'followers',
       title: 'Followers',
@@ -157,33 +67,39 @@ export const mediaKit = defineType({
       description: 'e.g. Last 60 days',
     }),
     defineField({
-      name: 'metrics',
-      title: 'Metrics',
-      type: 'array',
+      name: 'postViews',
+      title: 'Post views',
+      type: 'string',
       group: 'stats',
-      of: [
-        defineArrayMember({
-          type: 'object',
-          name: 'metric',
-          fields: [
-            defineField({
-              name: 'label',
-              title: 'Label',
-              type: 'string',
-              validation: (rule) => rule.required(),
-            }),
-            defineField({
-              name: 'value',
-              title: 'Value',
-              type: 'string',
-              validation: (rule) => rule.required(),
-            }),
-          ],
-          preview: {
-            select: {title: 'label', subtitle: 'value'},
-          },
-        }),
-      ],
+      description: 'Display value (e.g. 5.2M)',
+    }),
+    defineField({
+      name: 'profileViews',
+      title: 'Profile views',
+      type: 'string',
+      group: 'stats',
+      description: 'Display value (e.g. 236k)',
+    }),
+    defineField({
+      name: 'likes',
+      title: 'Likes',
+      type: 'string',
+      group: 'stats',
+      description: 'Display value (e.g. 872k)',
+    }),
+    defineField({
+      name: 'comments',
+      title: 'Comments',
+      type: 'string',
+      group: 'stats',
+      description: 'Display value (e.g. 867)',
+    }),
+    defineField({
+      name: 'shares',
+      title: 'Shares',
+      type: 'string',
+      group: 'stats',
+      description: 'Display value (e.g. 7.5k)',
     }),
 
     defineField({
@@ -235,9 +151,8 @@ export const mediaKit = defineType({
     }),
   ],
   preview: {
-    select: {title: 'name'},
-    prepare: ({title}) => ({
-      title: title || 'Media Kit',
+    prepare: () => ({
+      title: 'Media Kit',
       subtitle: 'Site content',
     }),
   },

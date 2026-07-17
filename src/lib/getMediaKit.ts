@@ -7,6 +7,7 @@ import {
   STATS,
   type BrandLogo,
 } from "@/lib/content";
+import { formatStatsUpdatedAt } from "@/lib/formatStatsUpdatedAt";
 import { client } from "@/sanity/client";
 import { urlFor } from "@/sanity/image";
 import { MEDIA_KIT_QUERY } from "@/sanity/queries";
@@ -30,7 +31,6 @@ export type MediaKitContent = {
     tiktokUrl: string;
     pronunciation: string;
     about: string;
-    aboutDesktop: string;
   };
   heroImages: HeroImage[];
   brandLogos: BrandLogo[];
@@ -44,6 +44,14 @@ export type MediaKitContent = {
   brandNames: string[];
 };
 
+const STAT_METRIC_FIELDS = [
+  { key: "postViews", label: "post views" },
+  { key: "profileViews", label: "profile views" },
+  { key: "likes", label: "likes" },
+  { key: "comments", label: "comments" },
+  { key: "shares", label: "shares" },
+] as const;
+
 const defaults: MediaKitContent = {
   site: {
     name: SITE.name,
@@ -52,7 +60,6 @@ const defaults: MediaKitContent = {
     tiktokUrl: SITE.tiktokUrl,
     pronunciation: SITE.pronunciation,
     about: SITE.about,
-    aboutDesktop: SITE.aboutDesktop,
   },
   heroImages: HERO_IMAGES.map((img) => ({ ...img })),
   brandLogos: BRAND_LOGOS.map((logo) => ({ ...logo })),
@@ -67,34 +74,20 @@ const defaults: MediaKitContent = {
 };
 
 type SanityMediaKit = {
-  name?: string | null;
-  email?: string | null;
-  tiktokHandle?: string | null;
-  tiktokUrl?: string | null;
+  _updatedAt?: string | null;
   pronunciation?: string | null;
   about?: string | null;
-  aboutDesktop?: string | null;
-  statsLastUpdated?: string | null;
   followers?: string | null;
   periodLabel?: string | null;
-  metrics?: Array<{
-    _key?: string;
-    label?: string | null;
-    value?: string | null;
-  }> | null;
+  postViews?: string | null;
+  profileViews?: string | null;
+  likes?: string | null;
+  comments?: string | null;
+  shares?: string | null;
   heroImages?: Array<{
     _key?: string;
     alt?: string | null;
     asset?: { _id?: string; url?: string | null } | null;
-  }> | null;
-  brandLogos?: Array<{
-    _key?: string;
-    name?: string | null;
-    width?: number | null;
-    height?: number | null;
-    logo?: {
-      asset?: { _id?: string; url?: string | null } | null;
-    } | null;
   }> | null;
   galleryVideos?: Array<{
     _key?: string;
@@ -125,6 +118,13 @@ function imageUrl(
   return source.asset.url ?? null;
 }
 
+function buildMetrics(data: SanityMediaKit): StatMetric[] {
+  return STAT_METRIC_FIELDS.map(({ key, label }, index) => ({
+    label,
+    value: data[key]?.trim() || defaults.stats.metrics[index]?.value || "—",
+  }));
+}
+
 function mergeMediaKit(data: SanityMediaKit | null): MediaKitContent {
   if (!data) return defaults;
 
@@ -136,20 +136,6 @@ function mergeMediaKit(data: SanityMediaKit | null): MediaKitContent {
         return { src, alt: img.alt?.trim() || "Gena Medure" };
       })
       .filter((img): img is HeroImage => Boolean(img)) ?? [];
-
-  const brandLogos =
-    data.brandLogos
-      ?.map((logo) => {
-        const src = imageUrl(logo.logo, 480);
-        if (!src || !logo.name) return null;
-        return {
-          name: logo.name,
-          src,
-          width: logo.width || 240,
-          height: logo.height || 60,
-        };
-      })
-      .filter((logo): logo is BrandLogo => Boolean(logo)) ?? [];
 
   const galleryVideos =
     data.galleryVideos
@@ -165,40 +151,30 @@ function mergeMediaKit(data: SanityMediaKit | null): MediaKitContent {
       })
       .filter((clip): clip is GalleryVideo => Boolean(clip)) ?? [];
 
-  const metrics =
-    data.metrics
-      ?.map((m) =>
-        m?.label && m?.value
-          ? { label: m.label, value: m.value }
-          : null,
-      )
-      .filter((m): m is StatMetric => Boolean(m)) ?? [];
-
   const brandNames =
     data.brandNames?.filter((name): name is string => Boolean(name?.trim())) ??
     [];
 
+  const lastUpdated = data._updatedAt
+    ? formatStatsUpdatedAt(new Date(data._updatedAt))
+    : defaults.stats.lastUpdated;
+
   return {
     site: {
-      name: data.name?.trim() || defaults.site.name,
-      email: data.email?.trim() || defaults.site.email,
-      tiktokHandle: data.tiktokHandle?.trim() || defaults.site.tiktokHandle,
-      tiktokUrl: data.tiktokUrl?.trim() || defaults.site.tiktokUrl,
+      name: defaults.site.name,
+      email: defaults.site.email,
+      tiktokHandle: defaults.site.tiktokHandle,
+      tiktokUrl: defaults.site.tiktokUrl,
       pronunciation: data.pronunciation?.trim() || defaults.site.pronunciation,
       about: data.about?.trim() || defaults.site.about,
-      aboutDesktop:
-        data.aboutDesktop?.trim() ||
-        data.about?.trim() ||
-        defaults.site.aboutDesktop,
     },
     heroImages: heroImages.length ? heroImages : defaults.heroImages,
-    brandLogos: brandLogos.length ? brandLogos : defaults.brandLogos,
+    brandLogos: defaults.brandLogos,
     stats: {
-      lastUpdated:
-        data.statsLastUpdated?.trim() || defaults.stats.lastUpdated,
+      lastUpdated,
       followers: data.followers?.trim() || defaults.stats.followers,
       periodLabel: data.periodLabel?.trim() || defaults.stats.periodLabel,
-      metrics: metrics.length ? metrics : defaults.stats.metrics,
+      metrics: buildMetrics(data),
     },
     galleryVideos: galleryVideos.length
       ? galleryVideos
