@@ -1,0 +1,17 @@
+# Dependencies
+/node_modules
+
+# Built Sanity Studio
+/dist
+
+# Generated schema extract
+schema.json
+
+# Temporary files
+*.log
+.DS_Store
+
+# Environment
+.env
+.env.*
+!.env.example

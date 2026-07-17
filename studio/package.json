@@ -1,0 +1,32 @@
+{
+  "name": "genamedure-studio",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Sanity Studio for the Gena Medure media kit",
+  "keywords": [
+    "sanity"
+  ],
+  "license": "UNLICENSED",
+  "main": "package.json",
+  "scripts": {
+    "dev": "sanity dev",
+    "start": "sanity start",
+    "build": "sanity build",
+    "deploy": "sanity deploy",
+    "deploy-graphql": "sanity graphql deploy"
+  },
+  "dependencies": {
+    "@sanity/vision": "6.5.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "sanity": "6.5.0",
+    "styled-components": "^6.1.19"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=22.12"
+  }
+}

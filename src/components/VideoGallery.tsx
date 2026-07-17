@@ -1,0 +1,252 @@
+"use client";
+
+import Image from "next/image";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
+import type { GalleryVideo } from "@/lib/getMediaKit";
+
+function formatTime(seconds: number) {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+type VideoGalleryProps = {
+  videos: GalleryVideo[];
+};
+
+export function VideoGallery({ videos }: VideoGalleryProps) {
+  const [index, setIndex] = useState(0);
+  const [playing, setPlaying] = useState(true);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+
+  const canPrev = index > 0;
+  const canNext = index < videos.length - 1;
+  const active = videos[index];
+  const hasVideo = Boolean(active?.src);
+
+  const stopAllExcept = useCallback((keep: number) => {
+    videoRefs.current.forEach((v, i) => {
+      if (!v) return;
+      if (i === keep) return;
+      v.pause();
+      v.currentTime = 0;
+    });
+  }, []);
+
+  const playActive = useCallback(async () => {
+    const v = videoRefs.current[index];
+    if (!v || !videos[index]?.src) {
+      setPlaying(false);
+      return;
+    }
+    stopAllExcept(index);
+    v.muted = true;
+    try {
+      await v.play();
+      setPlaying(true);
+    } catch {
+      setPlaying(false);
+    }
+  }, [index, stopAllExcept, videos]);
+
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const slide = el.children[index] as HTMLElement | undefined;
+    if (!slide) return;
+    el.scrollTo({ left: slide.offsetLeft, behavior: "smooth" });
+  }, [index]);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      void playActive();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [index, playActive]);
+
+  const goPrev = () => {
+    if (!canPrev) return;
+    setProgress(0);
+    setDuration(0);
+    setIndex((i) => i - 1);
+  };
+
+  const goNext = () => {
+    if (!canNext) return;
+    setProgress(0);
+    setDuration(0);
+    setIndex((i) => i + 1);
+  };
+
+  const togglePlay = async () => {
+    const v = videoRefs.current[index];
+    if (!v || !hasVideo) return;
+    if (v.paused) {
+      await v.play();
+      setPlaying(true);
+    } else {
+      v.pause();
+      setPlaying(false);
+    }
+  };
+
+  const onTimeUpdate = (i: number) => {
+    if (i !== index) return;
+    const v = videoRefs.current[i];
+    if (!v || !v.duration) return;
+    setProgress(v.currentTime);
+    setDuration(v.duration);
+  };
+
+  const onSeek = (value: number) => {
+    const v = videoRefs.current[index];
+    if (!v || !hasVideo) return;
+    v.currentTime = value;
+    setProgress(value);
+  };
+
+  const onPointerDownSlide = (e: ReactPointerEvent, i: number) => {
+    if (i !== index) {
+      setProgress(0);
+      setDuration(0);
+      setIndex(i);
+    }
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+
+  return (
+    <section className="w-full px-2.5">
+      <div className="mb-2.5 flex w-full items-end justify-between">
+        <div className="relative">
+          <h2 className="font-display text-[50px] leading-none text-black">
+            Gallery
+          </h2>
+          <Image
+            src="/images/scribbles/gallery.svg"
+            alt=""
+            width={51}
+            height={46}
+            className="pointer-events-none absolute -right-14 -top-4 -rotate-[10deg]"
+            aria-hidden
+          />
+        </div>
+
+        <div className="flex gap-4 font-body text-2xl text-black">
+          <button
+            type="button"
+            onClick={goPrev}
+            disabled={!canPrev}
+            className={`transition-opacity duration-200 ${
+              canPrev ? "opacity-100 hover:opacity-60" : "cursor-default opacity-50"
+            }`}
+            aria-label="Previous video"
+          >
+            Prev
+          </button>
+          <button
+            type="button"
+            onClick={goNext}
+            disabled={!canNext}
+            className={`transition-opacity duration-200 ${
+              canNext ? "opacity-100 hover:opacity-60" : "cursor-default opacity-50"
+            }`}
+            aria-label="Next video"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+
+      <div
+        ref={scrollerRef}
+        className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {videos.map((item, i) => {
+          const isActive = i === index;
+          return (
+            <div
+              key={item.id}
+              className="gallery-slide relative aspect-[381/677] w-[min(100%,381px)] shrink-0 snap-start overflow-hidden bg-neutral-100"
+              onPointerDown={(e) => onPointerDownSlide(e, i)}
+            >
+              {item.src ? (
+                <video
+                  ref={(el) => {
+                    videoRefs.current[i] = el;
+                  }}
+                  src={item.src}
+                  poster={item.poster}
+                  muted
+                  playsInline
+                  loop
+                  preload={isActive ? "auto" : "metadata"}
+                  className="h-full w-full object-cover"
+                  onTimeUpdate={() => onTimeUpdate(i)}
+                  onLoadedMetadata={() => {
+                    const v = videoRefs.current[i];
+                    if (v && i === index) setDuration(v.duration);
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isActive) void togglePlay();
+                  }}
+                />
+              ) : (
+                <Image
+                  src={item.poster}
+                  alt={item.alt}
+                  fill
+                  sizes="381px"
+                  className="object-cover"
+                  priority={i === 0}
+                />
+              )}
+
+              {isActive && item.src && (
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent px-3 pb-3 pt-10">
+                  <div className="mb-2 flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void togglePlay();
+                      }}
+                      className="font-body text-sm tracking-[-0.08px] text-white"
+                      aria-label={playing ? "Pause" : "Play"}
+                    >
+                      {playing ? "Pause" : "Play"}
+                    </button>
+                    <span className="font-body text-xs tabular-nums text-white/80">
+                      {formatTime(progress)} / {formatTime(duration)}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={duration || 0}
+                    step={0.05}
+                    value={progress}
+                    onChange={(e) => onSeek(Number(e.target.value))}
+                    onClick={(e) => e.stopPropagation()}
+                    className="scrubber"
+                    aria-label="Seek"
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
