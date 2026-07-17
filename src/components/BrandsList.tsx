@@ -17,7 +17,7 @@ export function BrandsList({ brandNames }: BrandsListProps) {
             alt=""
             width={32}
             height={53}
-            className="pointer-events-none absolute -right-8 top-1 -rotate-[6deg]"
+            className="pointer-events-none absolute -right-12 -top-1 -rotate-[6deg]"
             aria-hidden
           />
         </div>

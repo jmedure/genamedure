@@ -17,6 +17,21 @@ function formatTime(seconds: number) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+function nearestSlideIndex(scroller: HTMLDivElement) {
+  const slides = Array.from(scroller.children) as HTMLElement[];
+  let best = 0;
+  let bestDist = Infinity;
+  const left = scroller.scrollLeft;
+  slides.forEach((slide, i) => {
+    const dist = Math.abs(slide.offsetLeft - left);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = i;
+    }
+  });
+  return best;
+}
+
 type VideoGalleryProps = {
   videos: GalleryVideo[];
 };
@@ -28,6 +43,10 @@ export function VideoGallery({ videos }: VideoGalleryProps) {
   const [duration, setDuration] = useState(0);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const indexRef = useRef(index);
+  const programmaticScrollRef = useRef(false);
+
+  indexRef.current = index;
 
   const canPrev = index > 0;
   const canNext = index < videos.length - 1;
@@ -44,12 +63,13 @@ export function VideoGallery({ videos }: VideoGalleryProps) {
   }, []);
 
   const playActive = useCallback(async () => {
-    const v = videoRefs.current[index];
-    if (!v || !videos[index]?.src) {
+    const activeIndex = indexRef.current;
+    const v = videoRefs.current[activeIndex];
+    if (!v || !videos[activeIndex]?.src) {
       setPlaying(false);
       return;
     }
-    stopAllExcept(index);
+    stopAllExcept(activeIndex);
     v.muted = true;
     try {
       await v.play();
@@ -57,15 +77,59 @@ export function VideoGallery({ videos }: VideoGalleryProps) {
     } catch {
       setPlaying(false);
     }
-  }, [index, stopAllExcept, videos]);
+  }, [stopAllExcept, videos]);
+
+  const selectIndex = useCallback((next: number) => {
+    if (next < 0 || next >= videos.length) return;
+    setProgress(0);
+    setDuration(0);
+    setIndex(next);
+  }, [videos.length]);
 
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
     const slide = el.children[index] as HTMLElement | undefined;
     if (!slide) return;
-    el.scrollTo({ left: slide.offsetLeft, behavior: "smooth" });
+    const target = slide.offsetLeft;
+    if (Math.abs(el.scrollLeft - target) < 2) return;
+    programmaticScrollRef.current = true;
+    el.scrollTo({ left: target, behavior: "smooth" });
   }, [index]);
+
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+
+    const settle = () => {
+      if (programmaticScrollRef.current) {
+        const slide = el.children[indexRef.current] as HTMLElement | undefined;
+        if (slide && Math.abs(el.scrollLeft - slide.offsetLeft) < 4) {
+          programmaticScrollRef.current = false;
+        }
+        return;
+      }
+
+      const next = nearestSlideIndex(el);
+      if (next !== indexRef.current) {
+        selectIndex(next);
+      }
+    };
+
+    let scrollTimeout = 0;
+    const onScroll = () => {
+      window.clearTimeout(scrollTimeout);
+      scrollTimeout = window.setTimeout(settle, 90);
+    };
+
+    el.addEventListener("scroll", onScroll, { passive: true });
+    el.addEventListener("scrollend", settle);
+    return () => {
+      window.clearTimeout(scrollTimeout);
+      el.removeEventListener("scroll", onScroll);
+      el.removeEventListener("scrollend", settle);
+    };
+  }, [selectIndex]);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -76,16 +140,12 @@ export function VideoGallery({ videos }: VideoGalleryProps) {
 
   const goPrev = () => {
     if (!canPrev) return;
-    setProgress(0);
-    setDuration(0);
-    setIndex((i) => i - 1);
+    selectIndex(index - 1);
   };
 
   const goNext = () => {
     if (!canNext) return;
-    setProgress(0);
-    setDuration(0);
-    setIndex((i) => i + 1);
+    selectIndex(index + 1);
   };
 
   const togglePlay = async () => {
@@ -116,10 +176,9 @@ export function VideoGallery({ videos }: VideoGalleryProps) {
   };
 
   const onPointerDownSlide = (e: ReactPointerEvent, i: number) => {
-    if (i !== index) {
-      setProgress(0);
-      setDuration(0);
-      setIndex(i);
+    // Tap/click a peek slide — swipe settles via scroll sync instead.
+    if (i !== index && e.pointerType === "mouse") {
+      selectIndex(i);
     }
     e.currentTarget.setPointerCapture?.(e.pointerId);
   };
