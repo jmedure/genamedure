@@ -1,13 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type PointerEvent as ReactPointerEvent,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { GalleryVideo } from "@/lib/getMediaKit";
 
 function formatTime(seconds: number) {
@@ -32,6 +26,11 @@ function nearestSlideIndex(scroller: HTMLDivElement) {
   return best;
 }
 
+function isTouchDevice() {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+}
+
 type VideoGalleryProps = {
   videos: GalleryVideo[];
 };
@@ -45,6 +44,8 @@ export function VideoGallery({ videos }: VideoGalleryProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const indexRef = useRef(index);
   const programmaticScrollRef = useRef(false);
+  const playTokenRef = useRef(0);
+  const touchModeRef = useRef(false);
 
   indexRef.current = index;
 
@@ -55,8 +56,7 @@ export function VideoGallery({ videos }: VideoGalleryProps) {
 
   const stopAllExcept = useCallback((keep: number) => {
     videoRefs.current.forEach((v, i) => {
-      if (!v) return;
-      if (i === keep) return;
+      if (!v || i === keep) return;
       v.pause();
       v.currentTime = 0;
     });
@@ -64,27 +64,66 @@ export function VideoGallery({ videos }: VideoGalleryProps) {
 
   const playActive = useCallback(async () => {
     const activeIndex = indexRef.current;
+    const token = ++playTokenRef.current;
     const v = videoRefs.current[activeIndex];
     if (!v || !videos[activeIndex]?.src) {
       setPlaying(false);
       return;
     }
+
     stopAllExcept(activeIndex);
     v.muted = true;
-    try {
-      await v.play();
-      setPlaying(true);
-    } catch {
-      setPlaying(false);
+    v.defaultMuted = true;
+    v.playsInline = true;
+
+    const attempt = async () => {
+      if (token !== playTokenRef.current) return;
+      try {
+        await v.play();
+        if (token !== playTokenRef.current) return;
+        setPlaying(true);
+      } catch {
+        if (token !== playTokenRef.current) return;
+        setPlaying(false);
+      }
+    };
+
+    if (v.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      await attempt();
+      return;
     }
+
+    const onReady = () => {
+      v.removeEventListener("loadeddata", onReady);
+      v.removeEventListener("canplay", onReady);
+      void attempt();
+    };
+    v.addEventListener("loadeddata", onReady);
+    v.addEventListener("canplay", onReady);
+    if (v.readyState === HTMLMediaElement.HAVE_NOTHING) v.load();
+    void attempt();
   }, [stopAllExcept, videos]);
 
-  const selectIndex = useCallback((next: number) => {
-    if (next < 0 || next >= videos.length) return;
-    setProgress(0);
-    setDuration(0);
-    setIndex(next);
-  }, [videos.length]);
+  const selectIndex = useCallback(
+    (next: number) => {
+      if (next < 0 || next >= videos.length || next === indexRef.current) return;
+      setProgress(0);
+      setDuration(0);
+      setIndex(next);
+    },
+    [videos.length],
+  );
+
+  // Keep the first slide fully visible inside the centered page column.
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    el.scrollLeft = 0;
+  }, []);
+
+  useEffect(() => {
+    touchModeRef.current = isTouchDevice();
+  }, []);
 
   useEffect(() => {
     const el = scrollerRef.current;
@@ -97,11 +136,18 @@ export function VideoGallery({ videos }: VideoGalleryProps) {
     el.scrollTo({ left: target, behavior: "smooth" });
   }, [index]);
 
+  // Touch only: sync active slide + autoplay after a finger swipe.
+  // Desktop uses Prev/Next / click — native drag-scroll won't rewire playback.
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
 
     const settle = () => {
+      if (!touchModeRef.current) {
+        programmaticScrollRef.current = false;
+        return;
+      }
+
       if (programmaticScrollRef.current) {
         const slide = el.children[indexRef.current] as HTMLElement | undefined;
         if (slide && Math.abs(el.scrollLeft - slide.offsetLeft) < 4) {
@@ -110,14 +156,12 @@ export function VideoGallery({ videos }: VideoGalleryProps) {
         return;
       }
 
-      const next = nearestSlideIndex(el);
-      if (next !== indexRef.current) {
-        selectIndex(next);
-      }
+      selectIndex(nearestSlideIndex(el));
     };
 
     let scrollTimeout = 0;
     const onScroll = () => {
+      if (!touchModeRef.current) return;
       window.clearTimeout(scrollTimeout);
       scrollTimeout = window.setTimeout(settle, 90);
     };
@@ -132,10 +176,13 @@ export function VideoGallery({ videos }: VideoGalleryProps) {
   }, [selectIndex]);
 
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
+    const timer = window.setTimeout(() => {
       void playActive();
-    });
-    return () => window.cancelAnimationFrame(frame);
+    }, 40);
+    return () => {
+      window.clearTimeout(timer);
+      playTokenRef.current += 1;
+    };
   }, [index, playActive]);
 
   const goPrev = () => {
@@ -152,8 +199,12 @@ export function VideoGallery({ videos }: VideoGalleryProps) {
     const v = videoRefs.current[index];
     if (!v || !hasVideo) return;
     if (v.paused) {
-      await v.play();
-      setPlaying(true);
+      try {
+        await v.play();
+        setPlaying(true);
+      } catch {
+        setPlaying(false);
+      }
     } else {
       v.pause();
       setPlaying(false);
@@ -175,16 +226,8 @@ export function VideoGallery({ videos }: VideoGalleryProps) {
     setProgress(value);
   };
 
-  const onPointerDownSlide = (e: ReactPointerEvent, i: number) => {
-    // Tap/click a peek slide — swipe settles via scroll sync instead.
-    if (i !== index && e.pointerType === "mouse") {
-      selectIndex(i);
-    }
-    e.currentTarget.setPointerCapture?.(e.pointerId);
-  };
-
   return (
-    <section className="w-full px-2.5">
+    <section className="w-full min-w-0 max-w-full px-2.5">
       <div className="mb-2.5 flex w-full items-end justify-between">
         <div className="relative">
           <h2 className="font-display text-[50px] leading-none text-black">
@@ -228,15 +271,17 @@ export function VideoGallery({ videos }: VideoGalleryProps) {
 
       <div
         ref={scrollerRef}
-        className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex w-full min-w-0 snap-x snap-mandatory gap-2.5 overflow-x-auto overscroll-x-contain scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {videos.map((item, i) => {
           const isActive = i === index;
           return (
             <div
               key={item.id}
-              className="gallery-slide relative aspect-[381/677] w-[min(100%,381px)] shrink-0 snap-start overflow-hidden bg-neutral-100"
-              onPointerDown={(e) => onPointerDownSlide(e, i)}
+              className="gallery-slide relative aspect-[381/677] w-[min(100%,381px)] max-w-full shrink-0 snap-start overflow-hidden bg-neutral-100"
+              onClick={() => {
+                if (i !== index) selectIndex(i);
+              }}
             >
               {item.src ? (
                 <video
@@ -251,13 +296,26 @@ export function VideoGallery({ videos }: VideoGalleryProps) {
                   preload={isActive ? "auto" : "metadata"}
                   className="h-full w-full object-cover"
                   onTimeUpdate={() => onTimeUpdate(i)}
+                  onPlay={() => {
+                    if (i === indexRef.current) setPlaying(true);
+                  }}
+                  onPause={() => {
+                    if (i === indexRef.current) setPlaying(false);
+                  }}
+                  onLoadedData={() => {
+                    if (i === indexRef.current) void playActive();
+                  }}
                   onLoadedMetadata={() => {
                     const v = videoRefs.current[i];
                     if (v && i === index) setDuration(v.duration);
                   }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (isActive) void togglePlay();
+                    if (isActive) {
+                      void togglePlay();
+                      return;
+                    }
+                    selectIndex(i);
                   }}
                 />
               ) : (

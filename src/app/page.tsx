@@ -32,7 +32,7 @@ export default async function Home() {
       <main className="flex w-full flex-col">
         <HeroGallery images={content.heroImages} />
 
-        <div className="mx-auto flex w-full max-w-[1223px] flex-col items-center gap-20 pb-6 pt-20">
+        <div className="mx-auto flex w-full min-w-0 max-w-[1223px] flex-col items-center gap-20 pb-6 pt-20">
           <BrandTicker logos={content.brandLogos} />
           <About
             pronunciation={content.site.pronunciation}
@@ -44,7 +44,9 @@ export default async function Home() {
             periodLabel={content.stats.periodLabel}
             metrics={content.stats.metrics}
           />
-          <VideoGallery videos={content.galleryVideos} />
+          <div className="w-full min-w-0">
+            <VideoGallery videos={content.galleryVideos} />
+          </div>
           <BrandsList brandNames={content.brandNames} />
           <Contact
             email={content.site.email}
