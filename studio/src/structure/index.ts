@@ -1,7 +1,7 @@
 import type {StructureResolver} from 'sanity/structure'
 import {DocumentIcon} from '@sanity/icons/Document'
 
-const SINGLETONS = ['mediaKit']
+const HIDDEN_TYPES = ['mediaKit', 'tiktokConnection']
 
 export const structure: StructureResolver = (S) =>
   S.list()
@@ -17,6 +17,6 @@ export const structure: StructureResolver = (S) =>
             .title('Media Kit'),
         ),
       ...S.documentTypeListItems().filter(
-        (listItem) => !SINGLETONS.includes(listItem.getId() as string),
+        (listItem) => !HIDDEN_TYPES.includes(listItem.getId() as string),
       ),
     ])

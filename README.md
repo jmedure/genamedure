@@ -31,6 +31,11 @@ NEXT_PUBLIC_SANITY_API_VERSION=2026-05-15
 
 If Sanity has no published **Media Kit** document yet, the site falls back to `src/lib/content.ts` defaults and local `public/images/` assets.
 
+### Stats (manual for now)
+
+Update followers / metrics in Studio → **Media Kit** → Stats.  
+TikTok automation was scoped then **paused** — see [`docs/tiktok-stats-sync.md`](docs/tiktok-stats-sync.md) if we pick it up later.
+
 ## Develop — Studio (edit content)
 
 Studio is a **separate app** under `studio/` (not embedded in Next). Needs Node.js ≥ 22.12.
