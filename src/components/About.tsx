@@ -23,10 +23,6 @@ export function About({ pronunciation, about }: AboutProps) {
           />
         </div>
 
-        <p className="font-body text-2xl tracking-[-0.12px] text-ink md:text-[32px] md:tracking-[-0.16px]">
-          {pronunciation}
-        </p>
-
         <p className="max-w-[367px] font-body text-2xl tracking-[-0.12px] text-ink md:max-w-[592px] md:text-[32px] md:tracking-[-0.16px]">
           {about}
         </p>

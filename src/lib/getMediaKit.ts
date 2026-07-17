@@ -19,6 +19,8 @@ export type GalleryVideo = {
   poster: string;
   src: string;
   alt: string;
+  /** Sanity asset LQIP (data URI) for blur placeholders. */
+  blurDataURL?: string;
 };
 
 export type StatMetric = { label: string; value: string };
@@ -93,7 +95,11 @@ type SanityMediaKit = {
     _key?: string;
     alt?: string | null;
     poster?: {
-      asset?: { _id?: string; url?: string | null } | null;
+      asset?: {
+        _id?: string;
+        url?: string | null;
+        metadata?: { lqip?: string | null } | null;
+      } | null;
     } | null;
     videoUrl?: string | null;
   }> | null;
@@ -145,17 +151,21 @@ function mergeMediaKit(data: SanityMediaKit | null): MediaKitContent {
 
   const galleryVideos =
     data.galleryVideos
-      ?.map((clip, i) => {
-        const poster = imageUrl(clip.poster, 800);
-        if (!poster) return null;
+      ?.map((clip, i): GalleryVideo | null => {
+        const poster = imageUrl(clip.poster, 800) || "";
+        const src = clip.videoUrl?.trim() || "";
+        // Prefer clips with a video; allow poster-only while thumbnail generates.
+        if (!src && !poster) return null;
+        const blurDataURL = clip.poster?.asset?.metadata?.lqip?.trim();
         return {
           id: clip._key || String(i + 1),
           poster,
-          src: clip.videoUrl?.trim() || "",
+          src,
           alt: clip.alt?.trim() || `Gallery clip ${i + 1}`,
+          ...(blurDataURL ? { blurDataURL } : {}),
         };
       })
-      .filter((clip): clip is GalleryVideo => Boolean(clip)) ?? [];
+      .filter((clip): clip is GalleryVideo => clip !== null) ?? [];
 
   const brandNames =
     data.brandNames?.filter((name): name is string => Boolean(name?.trim())) ??

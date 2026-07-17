@@ -60,7 +60,8 @@ Edit the **Media Kit** singleton → publish. The site revalidates about every 3
 - Hero images
 - Pronunciation + about (about also drives site meta description)
 - Stats: followers, period, post views, profile views, likes, comments, shares
-- Gallery clips (poster + optional video file)
+- Gallery clips (video — poster/blur/alt auto-generated from the first frame)
+- Hero images (alt auto-generated on upload)
 - Brand names list
 
 Name, email, TikTok handle/URL, and brand logos are hardcoded in `src/lib/content.ts`. Hand-drawn scribbles stay in the frontend for now.

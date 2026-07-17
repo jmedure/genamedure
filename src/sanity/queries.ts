@@ -21,7 +21,11 @@ export const MEDIA_KIT_QUERY = defineQuery(`
       _key,
       alt,
       poster{
-        asset->{_id, url}
+        asset->{
+          _id,
+          url,
+          metadata{ lqip }
+        }
       },
       "videoUrl": video.asset->url
     },

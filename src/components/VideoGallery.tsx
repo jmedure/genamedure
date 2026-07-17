@@ -26,18 +26,13 @@ function nearestSlideIndex(scroller: HTMLDivElement) {
   return best;
 }
 
-function isTouchDevice() {
-  if (typeof window === "undefined") return false;
-  return window.matchMedia("(hover: none) and (pointer: coarse)").matches;
-}
-
 type VideoGalleryProps = {
   videos: GalleryVideo[];
 };
 
 export function VideoGallery({ videos }: VideoGalleryProps) {
   const [index, setIndex] = useState(0);
-  const [playing, setPlaying] = useState(true);
+  const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
@@ -45,7 +40,6 @@ export function VideoGallery({ videos }: VideoGalleryProps) {
   const indexRef = useRef(index);
   const programmaticScrollRef = useRef(false);
   const playTokenRef = useRef(0);
-  const touchModeRef = useRef(false);
 
   indexRef.current = index;
 
@@ -121,10 +115,7 @@ export function VideoGallery({ videos }: VideoGalleryProps) {
     el.scrollLeft = 0;
   }, []);
 
-  useEffect(() => {
-    touchModeRef.current = isTouchDevice();
-  }, []);
-
+  // Scroll the strip when Prev/Next / tap changes index.
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
@@ -136,42 +127,50 @@ export function VideoGallery({ videos }: VideoGalleryProps) {
     el.scrollTo({ left: target, behavior: "smooth" });
   }, [index]);
 
-  // Touch only: sync active slide + autoplay after a finger swipe.
-  // Desktop uses Prev/Next / click — native drag-scroll won't rewire playback.
+  // Commit active slide from scroll position (swipe or snap settle).
+  // Prev/Next + autoplay both follow this same index.
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
 
-    const settle = () => {
-      if (!touchModeRef.current) {
+    const commitNearest = () => {
+      const nearest = nearestSlideIndex(el);
+
+      // Programmatic Prev/Next scroll finished on the intended slide.
+      if (programmaticScrollRef.current && nearest === indexRef.current) {
         programmaticScrollRef.current = false;
         return;
       }
 
-      if (programmaticScrollRef.current) {
-        const slide = el.children[indexRef.current] as HTMLElement | undefined;
-        if (slide && Math.abs(el.scrollLeft - slide.offsetLeft) < 4) {
-          programmaticScrollRef.current = false;
-        }
-        return;
+      // User swipe (or interrupted programmatic scroll) landed elsewhere.
+      programmaticScrollRef.current = false;
+      if (nearest !== indexRef.current) {
+        selectIndex(nearest);
       }
-
-      selectIndex(nearestSlideIndex(el));
     };
 
     let scrollTimeout = 0;
     const onScroll = () => {
-      if (!touchModeRef.current) return;
       window.clearTimeout(scrollTimeout);
-      scrollTimeout = window.setTimeout(settle, 90);
+      scrollTimeout = window.setTimeout(commitNearest, 80);
+    };
+
+    // Finger down cancels the programmatic lock so swipe can own index.
+    const onPointerDown = () => {
+      programmaticScrollRef.current = false;
     };
 
     el.addEventListener("scroll", onScroll, { passive: true });
-    el.addEventListener("scrollend", settle);
+    el.addEventListener("scrollend", commitNearest);
+    el.addEventListener("touchstart", onPointerDown, { passive: true });
+    el.addEventListener("pointerdown", onPointerDown, { passive: true });
+
     return () => {
       window.clearTimeout(scrollTimeout);
       el.removeEventListener("scroll", onScroll);
-      el.removeEventListener("scrollend", settle);
+      el.removeEventListener("scrollend", commitNearest);
+      el.removeEventListener("touchstart", onPointerDown);
+      el.removeEventListener("pointerdown", onPointerDown);
     };
   }, [selectIndex]);
 
@@ -212,7 +211,7 @@ export function VideoGallery({ videos }: VideoGalleryProps) {
   };
 
   const onTimeUpdate = (i: number) => {
-    if (i !== index) return;
+    if (i !== indexRef.current) return;
     const v = videoRefs.current[i];
     if (!v || !v.duration) return;
     setProgress(v.currentTime);
@@ -289,7 +288,7 @@ export function VideoGallery({ videos }: VideoGalleryProps) {
                     videoRefs.current[i] = el;
                   }}
                   src={item.src}
-                  poster={item.poster}
+                  poster={item.poster || undefined}
                   muted
                   playsInline
                   loop
@@ -307,7 +306,9 @@ export function VideoGallery({ videos }: VideoGalleryProps) {
                   }}
                   onLoadedMetadata={() => {
                     const v = videoRefs.current[i];
-                    if (v && i === index) setDuration(v.duration);
+                    if (v && i === indexRef.current) {
+                      setDuration(Number.isFinite(v.duration) ? v.duration : 0);
+                    }
                   }}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -318,7 +319,7 @@ export function VideoGallery({ videos }: VideoGalleryProps) {
                     selectIndex(i);
                   }}
                 />
-              ) : (
+              ) : item.poster ? (
                 <Image
                   src={item.poster}
                   alt={item.alt}
@@ -326,7 +327,11 @@ export function VideoGallery({ videos }: VideoGalleryProps) {
                   sizes="381px"
                   className="object-cover"
                   priority={i === 0}
+                  placeholder={item.blurDataURL ? "blur" : "empty"}
+                  blurDataURL={item.blurDataURL}
                 />
+              ) : (
+                <div className="h-full w-full bg-neutral-100" aria-hidden />
               )}
 
               {isActive && item.src && (

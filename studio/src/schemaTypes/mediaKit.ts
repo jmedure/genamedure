@@ -1,5 +1,7 @@
 import {defineArrayMember, defineField, defineType} from 'sanity'
 import {DocumentIcon} from '@sanity/icons/Document'
+import {AutoAltImageInput} from '../components/AutoAltImageInput'
+import {GalleryClipInput} from '../components/GalleryClipInput'
 
 export const mediaKit = defineType({
   name: 'mediaKit',
@@ -23,13 +25,22 @@ export const mediaKit = defineType({
         defineArrayMember({
           type: 'image',
           options: {hotspot: true},
+          components: {input: AutoAltImageInput},
           fields: [
             defineField({
               name: 'alt',
               title: 'Alt text',
               type: 'string',
+              description: 'Auto-filled from the image — edit anytime',
               validation: (rule) =>
                 rule.required().warning('Alt text helps accessibility'),
+            }),
+            defineField({
+              name: 'altSourceAssetId',
+              title: 'Alt source asset',
+              type: 'string',
+              hidden: true,
+              readOnly: true,
             }),
           ],
         }),
@@ -112,30 +123,49 @@ export const mediaKit = defineType({
           type: 'object',
           name: 'galleryClip',
           title: 'Gallery clip',
+          components: {input: GalleryClipInput},
           fields: [
             defineField({
               name: 'alt',
               title: 'Alt text',
               type: 'string',
+              description:
+                'Auto-filled from the video thumbnail — edit anytime',
+              validation: (rule) =>
+                rule.required().warning('Generated after video upload'),
+            }),
+            defineField({
+              name: 'video',
+              title: 'Video',
+              type: 'file',
+              options: {accept: 'video/*'},
+              description:
+                'Upload an MP4 when possible (best browser support). Thumbnail and alt text are generated automatically.',
               validation: (rule) => rule.required(),
             }),
             defineField({
               name: 'poster',
-              title: 'Poster image',
+              title: 'Poster',
               type: 'image',
               options: {hotspot: true},
-              validation: (rule) => rule.required(),
+              hidden: true,
+              readOnly: true,
             }),
             defineField({
-              name: 'video',
-              title: 'Video file',
-              type: 'file',
-              options: {accept: 'video/*'},
-              description: 'Optional — poster shows until a video is uploaded',
+              name: 'posterSourceVideoId',
+              title: 'Poster source video',
+              type: 'string',
+              hidden: true,
+              readOnly: true,
             }),
           ],
           preview: {
             select: {title: 'alt', media: 'poster'},
+            prepare: ({title, media}) => ({
+              title: title || 'Gallery clip',
+              subtitle: media ? 'Thumbnail ready' : 'Generating thumbnail…',
+              media,
+            }),
           },
         }),
       ],

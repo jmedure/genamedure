@@ -99,6 +99,18 @@ function SymbolPlace({
   );
 }
 
+function StaticValue({ value }: { value: string }) {
+  return (
+    <>
+      {Array.from(value).map((char, i) => (
+        <span key={`${i}-${char}`} className="inline-block leading-none">
+          {char}
+        </span>
+      ))}
+    </>
+  );
+}
+
 export function MaskedCountUp({ value, className }: MaskedCountUpProps) {
   const ref = useRef<HTMLSpanElement>(null);
   const [active, setActive] = useState(false);
@@ -112,6 +124,8 @@ export function MaskedCountUp({ value, className }: MaskedCountUpProps) {
       return;
     }
 
+    // Observe a full-size sizer — collapsed 0fr digits have ~0 area, so IO
+    // with a non-zero threshold never fires and numbers stay invisible.
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry?.isIntersecting) {
@@ -119,7 +133,7 @@ export function MaskedCountUp({ value, className }: MaskedCountUpProps) {
           observer.disconnect();
         }
       },
-      { threshold: 0.35, rootMargin: "0px 0px -8% 0px" },
+      { threshold: 0.2, rootMargin: "0px 0px -5% 0px" },
     );
 
     observer.observe(el);
@@ -129,32 +143,37 @@ export function MaskedCountUp({ value, className }: MaskedCountUpProps) {
   return (
     <span
       ref={ref}
-      className={`inline-flex h-[1em] items-baseline leading-none ${className ?? ""}`}
+      className={`relative inline-flex h-[1em] items-baseline leading-none ${className ?? ""}`}
       aria-label={value}
     >
-      {Array.from(value).map((char, i) => {
-        const delayMs = i * STAGGER_MS;
+      <span className="invisible inline-flex" aria-hidden>
+        <StaticValue value={value} />
+      </span>
+      <span className="absolute inset-0 inline-flex items-baseline overflow-hidden">
+        {Array.from(value).map((char, i) => {
+          const delayMs = i * STAGGER_MS;
 
-        if (char >= "0" && char <= "9") {
+          if (char >= "0" && char <= "9") {
+            return (
+              <DigitPlace
+                key={`${i}-${char}`}
+                digit={Number(char)}
+                active={active}
+                delayMs={delayMs}
+              />
+            );
+          }
+
           return (
-            <DigitPlace
+            <SymbolPlace
               key={`${i}-${char}`}
-              digit={Number(char)}
+              char={char}
               active={active}
               delayMs={delayMs}
             />
           );
-        }
-
-        return (
-          <SymbolPlace
-            key={`${i}-${char}`}
-            char={char}
-            active={active}
-            delayMs={delayMs}
-          />
-        );
-      })}
+        })}
+      </span>
     </span>
   );
 }

@@ -22,7 +22,7 @@ export default async function Home() {
   const content = await getMediaKit();
 
   return (
-    <div className="min-h-screen bg-white">
+    <div id="top" className="min-h-screen bg-white">
       <Header
         name={content.site.name}
         email={content.site.email}
