@@ -146,15 +146,15 @@ export const BRAND_LOGOS: BrandLogo[] = [
 ];
 
 export const STATS = {
-  lastUpdated: "8:45 AM PDT",
-  followers: "20.6k",
-  periodLabel: "Last 60 days",
+  lastUpdated: "today",
+  followers: "20.6K",
+  periodLabel: "Last 60 Days",
   metrics: [
-    { label: "post views", value: "5.2M" },
-    { label: "profile views", value: "236k" },
-    { label: "likes", value: "872k" },
-    { label: "comments", value: "867" },
-    { label: "shares", value: "7.5k" },
+    { label: "Post Views", value: "5.2M" },
+    { label: "Profile Views", value: "236K" },
+    { label: "Likes", value: "872K" },
+    { label: "Comments", value: "867" },
+    { label: "Shares", value: "7.5K" },
   ],
 } as const;
 

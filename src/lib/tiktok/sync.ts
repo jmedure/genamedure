@@ -29,7 +29,7 @@ export async function syncTikTokStatsToSanity() {
   const profileViews = existing.profileViews?.trim() || "—";
   const stats = {
     followers: formatCompact(user.follower_count ?? 0),
-    periodLabel: "Last 60 days",
+    periodLabel: "Last 60 Days",
     postViews: formatCompact(totals.postViews),
     profileViews,
     likes: formatCompact(totals.likes),
@@ -55,11 +55,11 @@ export async function syncTikTokStatsToSanity() {
     profileUrl,
     followers: stats.followers,
     metrics: [
-      { label: "post views", value: stats.postViews },
-      { label: "profile views", value: stats.profileViews },
-      { label: "likes", value: stats.likes },
-      { label: "comments", value: stats.comments },
-      { label: "shares", value: stats.shares },
+      { label: "Post Views", value: stats.postViews },
+      { label: "Profile Views", value: stats.profileViews },
+      { label: "Likes", value: stats.likes },
+      { label: "Comments", value: stats.comments },
+      { label: "Shares", value: stats.shares },
     ],
     videosCounted: totals.videoCount,
     profileViews: existing.profileViews?.trim()

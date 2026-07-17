@@ -32,15 +32,15 @@ export function Stats({
               aria-hidden
             />
           </div>
-          <div className="flex gap-2 font-body text-base tracking-[-0.08px] text-black">
-            <span className="opacity-50">Last updated:</span>
+          <div className="flex gap-1 font-body text-lg tracking-[-0.08px] text-black/70">
+            <span className="">Updated</span>
             <span>{lastUpdated}</span>
           </div>
         </div>
 
         <div className="flex flex-col gap-1">
-          <p className="font-body text-2xl capitalize tracking-[-0.12px] text-ink md:normal-case md:tracking-[-0.24px]">
-            followers
+          <p className="font-body text-2xl tracking-[-0.12px] text-ink md:tracking-[-0.24px]">
+            Followers
           </p>
           <MaskedCountUp
             value={followers}
@@ -59,7 +59,7 @@ export function Stats({
                 key={m.label}
                 className="flex w-full max-w-[175px] flex-col gap-1"
               >
-                <p className="font-body text-2xl capitalize tracking-[-0.12px] text-ink md:normal-case">
+                <p className="font-body text-2xl tracking-[-0.12px] text-ink">
                   {m.label}
                 </p>
                 <MaskedCountUp

@@ -45,11 +45,11 @@ export type MediaKitContent = {
 };
 
 const STAT_METRIC_FIELDS = [
-  { key: "postViews", label: "post views" },
-  { key: "profileViews", label: "profile views" },
-  { key: "likes", label: "likes" },
-  { key: "comments", label: "comments" },
-  { key: "shares", label: "shares" },
+  { key: "postViews", label: "Post Views" },
+  { key: "profileViews", label: "Profile Views" },
+  { key: "likes", label: "Likes" },
+  { key: "comments", label: "Comments" },
+  { key: "shares", label: "Shares" },
 ] as const;
 
 const defaults: MediaKitContent = {
@@ -118,10 +118,16 @@ function imageUrl(
   return source.asset.url ?? null;
 }
 
+function normalizeStatValue(value: string) {
+  return value.replace(/k\b/g, "K");
+}
+
 function buildMetrics(data: SanityMediaKit): StatMetric[] {
   return STAT_METRIC_FIELDS.map(({ key, label }, index) => ({
     label,
-    value: data[key]?.trim() || defaults.stats.metrics[index]?.value || "—",
+    value: normalizeStatValue(
+      data[key]?.trim() || defaults.stats.metrics[index]?.value || "—",
+    ),
   }));
 }
 
@@ -172,7 +178,9 @@ function mergeMediaKit(data: SanityMediaKit | null): MediaKitContent {
     brandLogos: defaults.brandLogos,
     stats: {
       lastUpdated,
-      followers: data.followers?.trim() || defaults.stats.followers,
+      followers: normalizeStatValue(
+        data.followers?.trim() || defaults.stats.followers,
+      ),
       periodLabel: data.periodLabel?.trim() || defaults.stats.periodLabel,
       metrics: buildMetrics(data),
     },

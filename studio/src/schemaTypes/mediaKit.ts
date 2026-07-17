@@ -64,7 +64,7 @@ export const mediaKit = defineType({
       title: 'Period label',
       type: 'string',
       group: 'stats',
-      description: 'e.g. Last 60 days',
+      description: 'e.g. Last 60 Days',
     }),
     defineField({
       name: 'postViews',
