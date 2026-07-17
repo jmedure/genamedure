@@ -21,7 +21,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ### Env vars
 
-Copy `.env.example` → `.env.local` (already set for this project):
+Create a local `.env.local` (gitignored) with:
 
 ```
 NEXT_PUBLIC_SANITY_PROJECT_ID=ptkp2bg1
